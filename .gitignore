@@ -1,0 +1,26 @@
+# Xcode & SwiftPM
+.build/
+*.xcodeproj
+*.xcworkspace
+.swiftpm/
+
+# macOS binaries & artifacts
+*.app/
+*.dmg
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# User configurations and credentials
+*.key
+*.pem
+*.token
+*oauth*.json
+*.env
+*.env.local
+
+# Temporary files & logs
+*.log
+*.tmp
+*.bak
+*~
