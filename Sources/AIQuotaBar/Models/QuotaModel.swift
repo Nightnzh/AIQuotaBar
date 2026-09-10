@@ -31,6 +31,29 @@ public enum ProviderType: String, CaseIterable, Identifiable, Codable {
         case .agy: return Color(red: 0.55, green: 0.35, blue: 0.95) // Violet / Indigo
         }
     }
+    
+    public var brandGradient: LinearGradient {
+        switch self {
+        case .claude:
+            return LinearGradient(
+                colors: [Color(red: 0.92, green: 0.48, blue: 0.30), Color(red: 0.80, green: 0.32, blue: 0.18)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .codex:
+            return LinearGradient(
+                colors: [Color(red: 0.12, green: 0.72, blue: 0.50), Color(red: 0.05, green: 0.52, blue: 0.36)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .agy:
+            return LinearGradient(
+                colors: [Color(red: 0.42, green: 0.48, blue: 0.98), Color(red: 0.65, green: 0.32, blue: 0.92)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
 }
 
 public enum QuotaLevel: String, Codable {
