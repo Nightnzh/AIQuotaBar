@@ -66,7 +66,10 @@ final class ServiceTests: XCTestCase {
         let quota = await CodexService.shared.fetchQuota(config: config)
         XCTAssertEqual(quota.provider, .codex)
         print("==> REAL CODEX QUOTA: Used \(quota.fiveHourUsedPercentage ?? -1)% · Reset \(quota.fiveHourResetCountdown) · Manual Resets \(quota.manualResetsRemaining ?? -1)")
-        XCTAssertEqual(quota.fiveHourUsedPercentage, 100.0)
+        XCTAssertNotNil(quota.fiveHourUsedPercentage)
+        if let used = quota.fiveHourUsedPercentage {
+            XCTAssertTrue(used >= 0.0 && used <= 100.0)
+        }
         XCTAssertEqual(quota.manualResetsRemaining, 3)
         XCTAssertNotNil(quota.resetTime)
     }

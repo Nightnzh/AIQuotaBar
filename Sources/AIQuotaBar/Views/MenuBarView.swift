@@ -10,10 +10,11 @@ public struct MenuBarView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            // 頂部導覽列
+            // 頂部導覽列（增加頂部邊距避免 Popover 尖角與圓角遮蔽或截斷）
             headerView
                 .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
                 .background(Color(NSColor.windowBackgroundColor))
             
             Divider()
@@ -61,7 +62,7 @@ public struct MenuBarView: View {
                 .padding(.vertical, 10)
                 .background(Color(NSColor.windowBackgroundColor))
         }
-        .frame(width: 400, height: 550)
+        .frame(width: 400, height: 560)
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }

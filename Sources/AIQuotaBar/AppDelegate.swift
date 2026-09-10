@@ -20,10 +20,13 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         // 建立 Popover
+        let hostingController = NSHostingController(rootView: MenuBarView())
+        hostingController.preferredContentSize = NSSize(width: 400, height: 560)
+        
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 380, height: 500)
+        popover.contentSize = NSSize(width: 400, height: 560)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(rootView: MenuBarView())
+        popover.contentViewController = hostingController
         
         // 監聽 QuotaManager 更新
         QuotaManager.shared.onQuotaUpdated = { [weak self] in
@@ -49,6 +52,8 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         if popover.isShown {
             popover.performClose(sender)
         } else {
+            // 每次顯示前確保 contentSize 一致，避免初次點開或切換尺寸時頂部邊緣被截斷
+            popover.contentSize = NSSize(width: 400, height: 560)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             NSApplication.shared.activate(ignoringOtherApps: true)
         }
