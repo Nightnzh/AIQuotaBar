@@ -107,14 +107,6 @@ public struct SettingsView: View {
                                 .foregroundColor(.secondary)
                             SecureField("OpenAI API Key (選填)", text: $config.gptApiKey)
                                 .textFieldStyle(.roundedBorder)
-                            
-                            HStack {
-                                Text("手動重置剩餘額度 (Banked Resets)：")
-                                    .font(.caption)
-                                Spacer()
-                                Stepper("\(config.codexManualResets) 次", value: $config.codexManualResets, in: 0...10)
-                                    .font(.caption)
-                            }
                         }
                         
                         Divider()

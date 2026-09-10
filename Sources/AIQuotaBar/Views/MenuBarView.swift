@@ -222,85 +222,65 @@ public struct MenuBarView: View {
                 .background(Color.primary.opacity(0.04))
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 
-                // ─── 若為 Codex：剩餘手動重置次數 + 控制中心醒目操作按鈕 ───
-                if quota.provider == .codex, let manualResets = quota.manualResetsRemaining {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.counterclockwise.circle.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(ProviderType.codex.brandColor)
-                        
-                        Text("剩餘手動重置：")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.primary)
-                        
-                        Text("\(manualResets) 次可用")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundColor(ProviderType.codex.brandColor)
-                        
-                        Spacer()
-                        
-                        // 當額度用盡或達 80% 時，浮現一鍵立即重置膠囊按鈕
-                        if manualResets > 0 && (quota.fiveHourUsedPercentage ?? 0) >= 80.0 {
-                            Button(action: {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                    manager.useCodexManualReset()
-                                }
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "bolt.fill")
-                                        .font(.system(size: 9))
-                                    Text("立即重置")
-                                        .font(.system(size: 11, weight: .bold))
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4.5)
-                                .background(
-                                    LinearGradient(
-                                        colors: [Color(red: 0.12, green: 0.72, blue: 0.50), Color(red: 0.05, green: 0.54, blue: 0.38)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .clipShape(Capsule())
-                                .shadow(color: ProviderType.codex.brandColor.opacity(0.35), radius: 3, y: 1)
-                            }
-                            .buttonStyle(.plain)
-                            .help("消耗 1 次手動重置次數，將 5 小時額度立即恢復為 100%")
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(ProviderType.codex.brandColor.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                }
-                
-                // ─── 週用量限制輔助進度 (若有) ───
+                // ─── 週用量限制與重置時間 (若有) ───
                 if let weekly = quota.weeklyUsedPercentage {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("週累積用量")
-                                .font(.system(size: 10, weight: .medium))
+                            Label("週累積用量", systemImage: "calendar")
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text("已用 \(Int(weekly))%")
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                .foregroundColor(.secondary)
+                            let weeklyRemaining = max(0, 100 - Int(weekly))
+                            Text("已用 \(Int(weekly))% · 剩餘 \(weeklyRemaining)%")
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundColor(weekly > 80 ? .red : (weekly > 50 ? .yellow : .blue))
                         }
                         
+                        // 週用量膠囊滑塊
                         GeometryReader { geometry in
+                            let width = geometry.size.width
+                            let fillWidth = max(4, width * CGFloat(min(1.0, weekly / 100.0)))
+                            
                             ZStack(alignment: .leading) {
                                 Capsule(style: .continuous)
-                                    .fill(Color.primary.opacity(0.07))
-                                    .frame(height: 6)
+                                    .fill(Color.primary.opacity(0.08))
+                                
                                 Capsule(style: .continuous)
-                                    .fill(weekly > 80 ? Color.red : (weekly > 50 ? Color.yellow : Color.blue))
-                                    .frame(width: max(3, geometry.size.width * CGFloat(min(1.0, weekly / 100.0))), height: 6)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: weekly > 80 ? [Color.orange, Color.red] : (weekly > 50 ? [Color.yellow, Color.orange] : [Color.blue, Color.cyan]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: fillWidth, height: 8)
                             }
                         }
-                        .frame(height: 6)
+                        .frame(height: 8)
+                        
+                        // 週用量重置時間
+                        if quota.weeklyResetTime != nil {
+                            HStack(spacing: 5) {
+                                Image(systemName: "clock.arrow.2.circlepath")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                Text("週用量重置：")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                Text(quota.weeklyResetCountdown)
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.primary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4.5)
+                            .background(Color.primary.opacity(0.03))
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        }
                     }
-                    .padding(.horizontal, 2)
+                    .padding(9)
+                    .background(Color.primary.opacity(0.03))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 
                 // 輔助說明列 (如帳號資訊或模型標籤)

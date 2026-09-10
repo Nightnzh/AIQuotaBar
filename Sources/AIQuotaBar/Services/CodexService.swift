@@ -84,8 +84,8 @@ public final class CodexService {
         var usedPct: Double = 0.0
         var resetDate: Date? = nil
         var weekUsed: Double? = nil
+        var weekResetDate: Date? = nil
         var planType: String = "plus"
-        var manualResets: Int = config.codexManualResets
         
         if let r = rolloutUsage {
             usedPct = r.fiveHourUsedPct
@@ -93,11 +93,11 @@ public final class CodexService {
                 resetDate = Date(timeIntervalSince1970: sec)
             }
             weekUsed = r.sevenDayUsedPct
+            if let sec = r.sevenDayResetsAt {
+                weekResetDate = Date(timeIntervalSince1970: sec)
+            }
             if let p = r.planType {
                 planType = p
-            }
-            if let mr = r.manualResetsRemaining {
-                manualResets = mr
             }
         }
         
@@ -112,14 +112,17 @@ public final class CodexService {
             if let w = c.sevenDayUsedPct {
                 weekUsed = w
             }
-            if let mr = c.manualResetsRemaining {
-                manualResets = mr
+            if let sec = c.sevenDayResetsAt {
+                weekResetDate = Date(timeIntervalSince1970: sec)
             }
         }
         
         // 額外防護：若重置時間已經過去，則自動視為該窗口已重置
         if let rDate = resetDate, rDate <= Date() {
             usedPct = 0.0
+        }
+        if let wDate = weekResetDate, wDate <= Date() {
+            weekUsed = 0.0
         }
         
         let fraction = max(0.0, (100.0 - usedPct) / 100.0)
@@ -154,8 +157,10 @@ public final class CodexService {
             errorMessage: nil,
             lastUpdated: Date(),
             fiveHourUsedPercentage: usedPct,
+            fiveHourResetTime: resetDate,
             weeklyUsedPercentage: weekUsed,
-            manualResetsRemaining: manualResets
+            weeklyResetTime: weekResetDate,
+            manualResetsRemaining: nil
         )
     }
     
@@ -164,8 +169,8 @@ public final class CodexService {
         let fiveHourUsedPct: Double
         let fiveHourResetsAt: TimeInterval?
         let sevenDayUsedPct: Double?
+        let sevenDayResetsAt: TimeInterval?
         let planType: String?
-        let manualResetsRemaining: Int?
     }
     
     private func readFromRolloutSessions() -> RolloutUsage? {
@@ -223,8 +228,13 @@ public final class CodexService {
                     let plan = (rateLimits["plan_type"] as? String) ?? "plus"
                     
                     var weekUsed: Double? = nil
+                    var weekResetsAt: TimeInterval? = nil
                     if let secondary = rateLimits["secondary"] as? [String: Any] {
                         weekUsed = secondary["used_percent"] as? Double
+                        let wSec = secondary["resets_at"] as? Double ?? Double((secondary["resets_at"] as? Int) ?? 0)
+                        if wSec > 0 {
+                            weekResetsAt = wSec
+                        }
                     }
                     
                     // 若重置時間已經過去，說明 5 小時窗口已經重置歸零
@@ -235,15 +245,12 @@ public final class CodexService {
                         }
                     }
                     
-                    // ChatGPT Plus / Team 提供 3 次手動重置額度 (Banked Reset)
-                    let manualResets: Int = (plan.lowercased() == "plus" || plan.lowercased() == "team") ? 3 : 0
-                    
                     return RolloutUsage(
                         fiveHourUsedPct: usedPct,
                         fiveHourResetsAt: resetsAt > 0 ? resetsAt : nil,
                         sevenDayUsedPct: weekUsed,
-                        planType: plan,
-                        manualResetsRemaining: manualResets
+                        sevenDayResetsAt: weekResetsAt,
+                        planType: plan
                     )
                 }
             }
@@ -257,7 +264,7 @@ public final class CodexService {
         let fiveHourUsedPct: Double?
         let fiveHourResetsAt: TimeInterval?
         let sevenDayUsedPct: Double?
-        let manualResetsRemaining: Int?
+        let sevenDayResetsAt: TimeInterval?
     }
     
     private func readCachedUsage() -> CachedUsage? {
@@ -271,13 +278,12 @@ public final class CodexService {
         let rateLimits = json["rate_limits"] as? [String: Any]
         let fiveHour = rateLimits?["five_hour"] as? [String: Any]
         let sevenDay = rateLimits?["seven_day"] as? [String: Any]
-        let manualResets = json["manual_resets_remaining"] as? Int ?? (rateLimits?["manual_resets_remaining"] as? Int)
         
         return CachedUsage(
             fiveHourUsedPct: fiveHour?["used_percentage"] as? Double,
             fiveHourResetsAt: fiveHour?["resets_at"] as? TimeInterval,
             sevenDayUsedPct: sevenDay?["used_percentage"] as? Double,
-            manualResetsRemaining: manualResets
+            sevenDayResetsAt: sevenDay?["resets_at"] as? TimeInterval
         )
     }
     
@@ -344,6 +350,7 @@ public final class CodexService {
     private func generateDemoQuota() -> ProviderQuota {
         let now = Date()
         let resetTime = now.addingTimeInterval(3600 * 1 + 14 * 60)
+        let weeklyReset = now.addingTimeInterval(3600 * 24 * 4 + 3600 * 18)
         
         return ProviderQuota(
             provider: .codex,
@@ -358,8 +365,10 @@ public final class CodexService {
             errorMessage: nil,
             lastUpdated: now,
             fiveHourUsedPercentage: 32.0,
+            fiveHourResetTime: resetTime,
             weeklyUsedPercentage: 45.0,
-            manualResetsRemaining: 3 // 示範有 3 次手動重置額度
+            weeklyResetTime: weeklyReset,
+            manualResetsRemaining: nil
         )
     }
 }

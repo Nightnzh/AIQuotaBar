@@ -202,6 +202,32 @@ public struct ProviderQuota: Identifiable, Codable {
         formatCountdown(for: fiveHourResetTime ?? resetTime)
     }
     
+    public var weeklyResetCountdown: String {
+        guard let target = weeklyResetTime else { return "無重置時間" }
+        let now = Date()
+        let interval = target.timeIntervalSince(now)
+        if interval <= 0 {
+            return "已重置"
+        }
+        
+        let hours = Int(interval) / 3600
+        let minutes = (Int(interval) % 3600) / 60
+        let days = hours / 24
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "zh_TW")
+        dateFormatter.dateFormat = "M月d日 a h:mm"
+        let dateStr = dateFormatter.string(from: target)
+        
+        if days >= 1 {
+            return "\(dateStr) (約 \(days)天\(hours % 24)小時後)"
+        } else if hours >= 1 {
+            return "\(dateStr) (約 \(hours)小時\(minutes)分後)"
+        } else {
+            return "\(dateStr) (約 \(max(1, minutes))分鐘後)"
+        }
+    }
+    
     public var resetCountdown: String {
         fiveHourResetCountdown
     }
