@@ -4,7 +4,7 @@ public struct MenuBarView: View {
     @ObservedObject var manager = QuotaManager.shared
     @ObservedObject var config = AppConfig.shared
     @State private var showingSettings = false
-    @State private var expandedProviders: Set<ProviderType> = [.agy]
+    @State private var expandedProviders: Set<ProviderType> = []
     
     public init() {}
     
@@ -41,17 +41,27 @@ public struct MenuBarView: View {
             }
             
             // 主要卡片列表（依 1. Claude, 2. Codex, 3. AGY 順序排列）
-            ScrollView {
-                VStack(spacing: 14) {
-                    ForEach(ProviderType.allCases) { provider in
-                        if config.isProviderEnabled(provider) {
-                            if let quota = manager.quotas[provider] {
-                                providerCard(for: quota)
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: true) {
+                    VStack(spacing: 14) {
+                        // 頂部錨點：保證每次開啟視圖必定停留在最上方，防止卡在底部
+                        Color.clear
+                            .frame(height: 0)
+                            .id("topScrollAnchor")
+                        
+                        ForEach(ProviderType.allCases) { provider in
+                            if config.isProviderEnabled(provider) {
+                                if let quota = manager.quotas[provider] {
+                                    providerCard(for: quota)
+                                }
                             }
                         }
                     }
+                    .padding(14)
                 }
-                .padding(14)
+                .onAppear {
+                    proxy.scrollTo("topScrollAnchor", anchor: .top)
+                }
             }
             
             Divider()
@@ -62,7 +72,7 @@ public struct MenuBarView: View {
                 .padding(.vertical, 10)
                 .background(Color(NSColor.windowBackgroundColor))
         }
-        .frame(width: 400, height: 560)
+        .frame(width: 400, height: 580)
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }

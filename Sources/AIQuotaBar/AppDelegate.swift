@@ -1,6 +1,19 @@
 import AppKit
 import SwiftUI
 
+// 自訂 HostingView 與 HostingController 以保證 NSPopover 內部的 SwiftUI ScrollView 能順暢轉發觸控板與滾輪事件
+final class PopoverHostingView<Content: View>: NSHostingView<Content> {
+    override func wantsForwardedScrollEvents(for axis: NSEvent.GestureAxis) -> Bool {
+        return true
+    }
+}
+
+final class PopoverHostingController<Content: View>: NSHostingController<Content> {
+    override func loadView() {
+        self.view = PopoverHostingView(rootView: rootView)
+    }
+}
+
 @MainActor
 public class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
@@ -20,11 +33,11 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         // 建立 Popover
-        let hostingController = NSHostingController(rootView: MenuBarView())
-        hostingController.preferredContentSize = NSSize(width: 400, height: 560)
+        let hostingController = PopoverHostingController(rootView: MenuBarView())
+        hostingController.preferredContentSize = NSSize(width: 400, height: 580)
         
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 400, height: 560)
+        popover.contentSize = NSSize(width: 400, height: 580)
         popover.behavior = .transient
         popover.contentViewController = hostingController
         
@@ -53,9 +66,11 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             popover.performClose(sender)
         } else {
             // 每次顯示前確保 contentSize 一致，避免初次點開或切換尺寸時頂部邊緣被截斷
-            popover.contentSize = NSSize(width: 400, height: 560)
+            popover.contentSize = NSSize(width: 400, height: 580)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             NSApplication.shared.activate(ignoringOtherApps: true)
+            // 讓 popover 視窗獲得 Key 焦點，確保第一時間能順暢接收觸控板與滑鼠滾輪滾動
+            popover.contentViewController?.view.window?.makeKey()
         }
     }
     
